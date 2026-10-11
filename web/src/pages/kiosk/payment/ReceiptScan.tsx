@@ -71,7 +71,7 @@ export function ReceiptScan({ sessionId, allowMultiple, onDone, onApplied }: { s
     [busy, sessionId, onApplied, t, lang],
   );
 
-  useScanner(onScan, { enabled: !success || allowMultiple });
+  useScanner(onScan, { enabled: !success });
 
   if (success) {
     return (

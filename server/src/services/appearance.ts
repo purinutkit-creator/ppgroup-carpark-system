@@ -101,7 +101,9 @@ export function publishDesign(req: Request, input: Partial<DesignConfig>, opts: 
     rolledBackFrom: opts.rolledBackFrom,
   }) as { id: number; version_no: number; created_at: string };
   const changed = changedSystems(prev, next, ALL_SYSTEMS);
-  const targets = opts.broadcastTo ?? (opts.appliedTo ? changed.filter((s) => opts.appliedTo!.includes(s)) : changed);
+  // A Global change affects every system even when the editor targeted one, so push it to all changed systems.
+  const scoped = opts.appliedTo && !touchesGlobal(changes) ? changed.filter((s) => opts.appliedTo!.includes(s)) : changed;
+  const targets = opts.broadcastTo ?? scoped;
   for (const s of targets) emit.config(s, 'design:updated', { versionId: row.id, versionNo: row.version_no });
   audit(req, {
     action: opts.action ?? 'appearance.apply',

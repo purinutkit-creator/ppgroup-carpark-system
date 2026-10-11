@@ -396,7 +396,7 @@ router.post(
     const docType = oneOf(b, 'docType', ['RECEIPT', 'TAX_INVOICE_ABB', 'TAX_INVOICE_FULL'] as const) ?? 'TAX_INVOICE_ABB';
     if (docType === 'TAX_INVOICE_FULL' && (!b.buyerName || !b.buyerTaxId)) throw new HttpError(400, 'BUYER_REQUIRED');
     const existing = q.get('SELECT * FROM tax_documents WHERE payment_id=? AND doc_type=?', p.id, docType);
-    if (existing) return res.json({ document: existing, reprint: true });
+    if (existing) return res.json({ document: existing, reprint: true, company: getSetting('receipt') });
     const vatRate = getSetting('payment').vatRate;
     const vat = r2((p.amount * vatRate) / (100 + vatRate));
     const prefix = docType === 'RECEIPT' ? 'RC' : docType === 'TAX_INVOICE_ABB' ? 'TA' : 'TF';

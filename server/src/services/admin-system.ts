@@ -99,6 +99,7 @@ systemRouter.post(
     try {
       const counts = verifyBackup(tmp);
       const safety = backupNow('PRE_RESTORE', req.user!.id);
+      const knownBackups = q.all('SELECT file, size, kind, created_by, created_at FROM backups');
       const actor = { id: req.user!.id, username: req.user!.username };
       // Swap: close the live db, replace the file (dropping WAL/SHM), reopen.
       db().close();
@@ -107,8 +108,11 @@ systemRouter.post(
       setDb(openDb());
       clearSettingsCache();
       invalidatePermissionCache();
-      // The restored db has its own backups table: re-register the safety copy so it stays visible.
-      if (!q.get('SELECT id FROM backups WHERE file=?', safety.file)) q.insert('backups', { file: safety.file, size: safety.size, kind: 'PRE_RESTORE', created_by: null });
+      // The restored db has its own backups table: carry over every backup file still on disk
+      // (including the safety copy) so none of them disappear from the list.
+      for (const b of knownBackups) {
+        if (!q.get('SELECT id FROM backups WHERE file=?', b.file) && fs.existsSync(backupFile(b.file))) q.insert('backups', { ...b, created_by: null });
+      }
       audit(req, { action: 'backup.restore', entityType: 'backup', entityId: req.file.originalname, reason, before: { safetyBackup: safety.file }, after: { file: req.file.originalname, size: req.file.size, ...counts }, meta: { restoredBy: actor } });
       res.json({ ok: true, safetyBackup: safety.file, restored: counts });
     } finally {

@@ -79,6 +79,7 @@ export function ensurePreview(family: string, cfg: DesignConfig | null, weights?
 
 let libraryP: Promise<LibraryFont[]> | null = null;
 let systemP: Promise<SystemFont[]> | null = null;
+const googleCache = new Map<string, Promise<{ items: CatalogFont[]; source: 'api' | 'builtin' }>>();
 
 export function invalidateLibrary() {
   libraryP = null;
@@ -97,15 +98,21 @@ export function useFontSources(query: string, subset = '') {
   }, []);
   useEffect(() => {
     let alive = true;
+    const key = `${query}|${subset}`;
     const t = setTimeout(() => {
-      get<{ items: CatalogFont[]; source: 'api' | 'builtin' }>(`/api/appearance/google-fonts${qs({ q: query, subset, limit: 80 })}`)
+      if (!googleCache.has(key)) googleCache.set(key, get<{ items: CatalogFont[]; source: 'api' | 'builtin' }>(`/api/appearance/google-fonts${qs({ q: query, subset, limit: 80 })}`));
+      googleCache
+        .get(key)!
         .then((r) => {
           if (!alive) return;
           setGoogle(r.items);
           setGoogleSource(r.source);
         })
-        .catch(() => alive && setGoogle([]));
-    }, 200);
+        .catch(() => {
+          googleCache.delete(key);
+          if (alive) setGoogle([]);
+        });
+    }, googleCache.has(key) ? 0 : 200);
     return () => {
       alive = false;
       clearTimeout(t);

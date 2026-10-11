@@ -208,3 +208,9 @@ export function linePreview(p: Product, variantName: string | null, mods: Array<
   for (const m of mods) unit += p.modifiers.find((g) => g.group === m.group)?.options.find((o) => o.name === m.name)?.price ?? 0;
   return r2(unit);
 }
+
+/** 'YYYY-MM-DD' (Bangkok) → ISO boundaries for API filters. */
+export const dayStartIso = (d: string) => (d ? new Date(`${d}T00:00:00.000+07:00`).toISOString() : '');
+export const dayEndIso = (d: string) => (d ? new Date(`${d}T23:59:59.999+07:00`).toISOString() : '');
+/** Today / N days ago as 'YYYY-MM-DD' in Bangkok. */
+export const bkkDate = (offsetDays = 0) => new Date(Date.now() + 7 * 3600_000 + offsetDays * 86400_000).toISOString().slice(0, 10);
