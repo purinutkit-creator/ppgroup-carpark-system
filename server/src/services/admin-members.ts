@@ -411,7 +411,7 @@ membersRouter.post(
   '/plate-lists',
   listGuard,
   h((req, res) => {
-    const row = { ...listRow(body(req)), created_by: req.user!.id };
+    const row: Record<string, unknown> = { ...listRow(body(req)), created_by: req.user!.id };
     assertSiteWrite(req, row.site_id as number | null);
     const id = q.insert('plate_lists', row);
     audit(req, { action: 'plate_list.create', entityType: 'plate_list', entityId: id, siteId: row.site_id as number | null, after: row, reason: (row.reason as string) ?? null });

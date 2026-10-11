@@ -40,3 +40,5 @@ export function rewardText(r: RewardLike) {
   const m = r.value % 60;
   return `จอดฟรีเพิ่ม ${h ? `${h} ชม.` : ''}${h && m ? ' ' : ''}${m ? `${m} นาที` : ''}`;
 }
+
+export const METHOD_TEXT: Record<string, string> = { PROMPTPAY: 'PromptPay', CARD: 'บัตรเครดิต/เดบิต', CASH: 'เงินสด', EWALLET: 'e-Wallet' };

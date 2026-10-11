@@ -4,9 +4,10 @@ import { get } from '../../lib/api';
 import { durationText } from '../../lib/format';
 import { printDoc, type PrinterTarget } from '../../print/print';
 import { parkingReceiptDoc } from '../../print/templates';
+import { METHOD_TEXT } from './receiptReasons';
 import type { Payment, Quote, ReceiptTemplate, SessionSummary } from './types';
 
-export const METHOD_TEXT: Record<string, string> = { PROMPTPAY: 'PromptPay', CARD: 'บัตรเครดิต/เดบิต', CASH: 'เงินสด', EWALLET: 'e-Wallet' };
+export { METHOD_TEXT };
 
 export async function printParkingReceipt(sessionId: number, design: DesignConfig | null, printer: PrinterTarget | null, opts: { device?: boolean } = {}) {
   const r = await get<{ session: SessionSummary; payment: Payment; quote: Quote; template: ReceiptTemplate }>(`/api/kiosk/sessions/${sessionId}/receipt`, { device: opts.device });

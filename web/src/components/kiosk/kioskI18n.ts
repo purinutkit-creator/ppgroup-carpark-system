@@ -76,6 +76,7 @@ const extra = {
   ticketNotFound: { th: 'ไม่พบบัตรจอดรถ', en: 'Ticket not found', zh: '未找到停车票' },
   welcomeEntry: { th: 'ยินดีต้อนรับ', en: 'Welcome', zh: '欢迎光临' },
   rateFrom: { th: 'อัตราค่าจอด', en: 'Parking rate', zh: '收费标准' },
+  saveQrHint: { th: 'บันทึก/แคปหน้าจอ QR แล้วเปิดในแอปธนาคารได้', en: 'You can save a screenshot of the QR and open it in your banking app', zh: '可截图保存二维码并在银行App中打开' },
   perHour: { th: 'บาท/ชั่วโมง', en: 'THB/hour', zh: '泰铢/小时' },
 } as const satisfies Record<string, Record<Lang, string>>;
 

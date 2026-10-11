@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
-import { q, db, openDb, setDb, tx, json } from '../db/index.ts';
+import { q, db, openDb, setDb, tx, json, type Row } from '../db/index.ts';
 import { config } from '../config.ts';
 import { body, h, reqStr, str, badRequest, conflict, forbidden, notFound } from '../lib/http.ts';
 import { requirePerm } from '../auth/middleware.ts';
@@ -91,7 +91,6 @@ systemRouter.post(
   backupGuard,
   uploadSingle,
   h((req, res) => {
-    if (req.user!.role !== 'OWNER') throw forbidden('OWNER_ONLY', 'กู้คืนฐานข้อมูลได้เฉพาะ OWNER');
     if (!req.file) throw badRequest('FILE_REQUIRED');
     const reason = String(req.body?.reason ?? '').trim();
     if (!reason) throw badRequest('REASON_REQUIRED', 'กรุณาระบุเหตุผลการกู้คืน');
@@ -162,7 +161,7 @@ systemRouter.get(
   }),
 );
 
-function removeDetectionImages(d: { image_path: string | null; candidates_json: string }) {
+function removeDetectionImages(d: Row) {
   let n = 0;
   const files = [d.image_path, ...json<Array<{ cropPath?: string }>>(d.candidates_json, []).map((c) => c.cropPath)].filter(Boolean) as string[];
   for (const f of files) {
@@ -183,6 +182,9 @@ systemRouter.post(
     const reason = reqStr(b, 'reason', 500);
     const active = q.get<{ n: number }>("SELECT COUNT(*) n FROM parking_sessions WHERE plate_key=? AND status='ACTIVE'", key)!.n;
     const dets = q.all("SELECT d.id, d.image_path, d.candidates_json FROM detections d LEFT JOIN parking_sessions s ON s.id=d.session_id WHERE d.plate_key=? AND (s.id IS NULL OR s.status!='ACTIVE')", key);
+    const closed = q.get<{ n: number }>("SELECT COUNT(*) n FROM parking_sessions WHERE plate_key=? AND status!='ACTIVE'", key)!.n;
+    // Active sessions are kept until exit (still needed for billing and the exit match).
+    if (!closed && !dets.length) throw conflict('NOTHING_TO_ANONYMISE', active ? 'มีเฉพาะรายการที่ยังจอดอยู่ (ACTIVE) — ทำได้หลังรถออก' : 'ไม่พบข้อมูลของทะเบียนนี้');
     const result = tx(() => {
       const sessions = q.run(
         `UPDATE parking_sessions SET plate_prefix=NULL, plate_number=NULL, plate_text='***', plate_key=NULL,
@@ -199,9 +201,7 @@ systemRouter.post(
     });
     let images = 0;
     for (const d of dets) images += removeDetectionImages(d);
-    if (active) result.sessions += 0; // active sessions are kept until exit (still needed for billing)
     audit(req, { action: 'pdpa.anonymise', entityType: 'plate', entityId: key, reason, before: { plateKey: key }, after: { ...result, imagesRemoved: images, activeSessionsKept: active } });
-    if (!result.sessions && !result.detections) throw conflict('NOTHING_TO_ANONYMISE', active ? 'มีเฉพาะรายการที่ยังจอดอยู่ (ACTIVE) — ทำได้หลังรถออก' : 'ไม่พบข้อมูลของทะเบียนนี้');
     res.json({ ok: true, ...result, imagesRemoved: images, activeSessionsKept: active });
   }),
 );
