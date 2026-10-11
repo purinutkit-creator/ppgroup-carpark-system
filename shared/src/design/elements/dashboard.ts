@@ -1,0 +1,7 @@
+import type { ElementDef } from '../resolve.ts';
+
+/** Text elements of the "dashboard" system. UI code marks them with data-el="<path>". */
+export const elements: ElementDef[] = [
+  { path: 'dashboard/main/kpi/value', label: 'KPI Value', role: 'number', defaults: { fontSize: 30, fontWeight: 700 }, sample: '1,284' },
+  { path: 'dashboard/main/kpi/label', label: 'KPI Label', role: 'primary', defaults: { fontSize: 13 }, sample: 'รถในลานขณะนี้' },
+];

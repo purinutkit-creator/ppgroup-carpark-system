@@ -1,0 +1,20 @@
+{
+  "name": "@pp/edge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Site edge agent: cameras (RTSP/ONVIF/LPR API), OCR, printers, barrier controllers, offline queue",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@pp/shared": "*",
+    "socket.io-client": "^4.8.1",
+    "tsx": "^4.20.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "typescript": "~5.9.3"
+  }
+}
