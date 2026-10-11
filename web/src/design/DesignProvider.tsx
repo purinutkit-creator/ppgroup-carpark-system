@@ -48,33 +48,37 @@ const clientId = (() => {
   }
 })();
 
-function useFontLinks(cfg: DesignConfig | null) {
+function useFontLinks(cfg: DesignConfig | null, suffix = '') {
   useEffect(() => {
     if (!cfg) return;
     const url = googleFontsUrl(cfg);
-    let link = document.getElementById('pp-google-fonts') as HTMLLinkElement | null;
+    let link = document.getElementById('pp-google-fonts' + suffix) as HTMLLinkElement | null;
     if (url) {
       if (!link) {
         link = document.createElement('link');
-        link.id = 'pp-google-fonts';
+        link.id = 'pp-google-fonts' + suffix;
         link.rel = 'stylesheet';
         document.head.appendChild(link);
       }
       if (link.href !== url) link.href = url;
     }
-    let faces = document.getElementById('pp-font-faces') as HTMLStyleElement | null;
+    let faces = document.getElementById('pp-font-faces' + suffix) as HTMLStyleElement | null;
     if (!faces) {
       faces = document.createElement('style');
-      faces.id = 'pp-font-faces';
+      faces.id = 'pp-font-faces' + suffix;
       document.head.appendChild(faces);
     }
     faces.textContent = uploadedFontFaces(cfg);
   }, [cfg]);
 }
 
-export function SystemStyle({ config, system }: { config: DesignConfig; system: SystemId }) {
-  const css = useMemo(() => buildSystemCss(config, system, ELEMENTS), [config, system]);
-  useFontLinks(config);
+export function SystemStyle({ config, system, preview }: { config: DesignConfig; system: SystemId; preview?: boolean }) {
+  const css = useMemo(() => {
+    const out = buildSystemCss(config, system, ELEMENTS);
+    // Draft previews are scoped so they don't restyle the surrounding admin shell.
+    return preview ? out.replace(new RegExp(`\\[data-system="${system}"\\]`, 'g'), `[data-preview][data-system="${system}"]`) : out;
+  }, [config, system, preview]);
+  useFontLinks(config, preview ? '-preview' : '');
   return <style data-design-system={system}>{css}</style>;
 }
 
@@ -117,8 +121,8 @@ export function DesignProvider({
   const theme = (cfg.systems[system]?.tokens?.theme ?? cfg.global.tokens.theme) || 'light';
   return (
     <Ctx.Provider value={{ config: cfg, version: state?.version ?? null, system }}>
-      <SystemStyle config={cfg} system={system} />
-      <div data-system={system} data-theme={theme} className={`sys-root ${className ?? ''}`}>
+      <SystemStyle config={cfg} system={system} preview={!!override} />
+      <div data-system={system} data-preview={override ? '' : undefined} data-theme={theme} className={`sys-root ${className ?? ''}`}>
         {children}
       </div>
     </Ctx.Provider>
