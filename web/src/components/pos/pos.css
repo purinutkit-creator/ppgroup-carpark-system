@@ -1,0 +1,113 @@
+/* Merchant POS, Merchant Portal, registration and customer display.
+   Colours / fonts come from the design-config CSS variables. */
+
+/* ------------------------------------------------------------- POS shell -- */
+.pos-shell { display: grid; grid-template-rows: auto 1fr; height: 100vh; overflow: hidden; background: var(--color-bg); }
+.pos-top { display: flex; align-items: center; gap: 12px; padding: 8px 14px; background: var(--color-surface); border-bottom: 1px solid var(--color-border); flex-wrap: wrap; }
+.pos-top .store { display: flex; align-items: center; gap: 10px; }
+.pos-top .store img { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; }
+.pos-top .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, var(--color-muted) 12%, transparent); font-size: 13px; white-space: nowrap; }
+.pos-top .chip.ok { background: color-mix(in srgb, var(--color-success) 16%, transparent); }
+.pos-top .chip.warn { background: color-mix(in srgb, var(--color-warning) 18%, transparent); }
+.pos-body { display: grid; grid-template-columns: 1fr minmax(340px, 420px); min-height: 0; }
+.pos-left { display: flex; flex-direction: column; min-height: 0; padding: 10px 12px; gap: 10px; }
+.pos-cats { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; flex-shrink: 0; }
+.pos-cats button { min-height: 48px; padding: 0 18px; border-radius: var(--radius); border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); cursor: pointer; white-space: nowrap; }
+.pos-cats button.active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+.pos-search { display: flex; gap: 8px; flex-shrink: 0; }
+.pos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; overflow-y: auto; align-content: start; padding-bottom: 12px; }
+.pos-tile { display: flex; flex-direction: column; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); overflow: hidden; cursor: pointer; text-align: left; padding: 0; color: var(--color-text); min-height: 150px; touch-action: manipulation; }
+.pos-tile:active { transform: scale(.98); }
+.pos-tile .img { aspect-ratio: 4 / 3; background: color-mix(in srgb, var(--color-muted) 10%, transparent) center / cover no-repeat; display: flex; align-items: center; justify-content: center; font-size: 30px; color: var(--color-muted); }
+.pos-tile .meta { padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
+.pos-tile .opts { font-size: 11px; color: var(--color-muted); }
+.pos-tile.out { opacity: .45; }
+.pos-right { display: flex; flex-direction: column; min-height: 0; background: var(--color-surface); border-left: 1px solid var(--color-border); }
+.pos-cart { flex: 1; overflow-y: auto; padding: 8px 12px; }
+.pos-line { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; padding: 10px 0; border-bottom: 1px dashed var(--color-border); }
+.pos-line .qty { display: flex; align-items: center; gap: 6px; }
+.pos-line .qty button { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--color-border); background: var(--color-bg); font-size: 20px; cursor: pointer; color: var(--color-text); }
+.pos-line .qty span { min-width: 28px; text-align: center; font-weight: 600; }
+.pos-sum { padding: 10px 12px; border-top: 1px solid var(--color-border); display: flex; flex-direction: column; gap: 4px; }
+.pos-sum .r { display: flex; justify-content: space-between; gap: 8px; }
+.pos-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 0 12px 8px; }
+.pos-actions .btn { min-height: 46px; padding: 4px; font-size: 13px; }
+.pos-pay { padding: 0 12px 12px; }
+.pos-pay .btn { width: 100%; min-height: 64px; font-size: 20px; }
+.pos-empty { color: var(--color-muted); text-align: center; padding: 40px 10px; }
+.pos-opt-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.pos-opt { min-height: 48px; padding: 6px 14px; border-radius: var(--radius); border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; }
+.pos-opt.active { border-color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 12%, transparent); box-shadow: inset 0 0 0 1px var(--color-primary); }
+.pos-opt small { color: var(--color-muted); }
+.pos-methods { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.pos-methods button { min-height: 56px; border-radius: var(--radius); border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); cursor: pointer; font-weight: 600; }
+.pos-methods button.active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+.pos-notes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.pos-notes .btn { min-height: 52px; font-size: 17px; }
+.pos-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.pos-keypad .btn { min-height: 52px; font-size: 20px; }
+.pos-split { display: flex; flex-direction: column; gap: 6px; }
+.pos-split .r { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; background: var(--color-bg); }
+.pos-due { text-align: center; padding: 6px 0 2px; }
+.pos-qr { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.pos-qr img { width: 240px; height: 240px; image-rendering: pixelated; background: #fff; padding: 6px; border-radius: 8px; }
+.pos-done { text-align: center; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.pos-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--color-bg); z-index: 5; padding: 16px; }
+.pos-overlay .card { width: min(460px, 100%); }
+@media (max-width: 860px) {
+  .pos-shell { height: auto; min-height: 100vh; overflow: visible; }
+  .pos-body { grid-template-columns: 1fr; }
+  .pos-right { border-left: 0; border-top: 1px solid var(--color-border); }
+  .pos-methods { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* -------------------------------------------------------- Merchant portal -- */
+.mp-shell { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
+.mp-nav { background: var(--color-surface); border-right: 1px solid var(--color-border); padding: 14px 10px; position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.mp-nav .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 14px; }
+.mp-nav .brand img { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; }
+.mp-nav a { display: flex; gap: 10px; align-items: center; padding: 9px 10px; border-radius: 8px; color: var(--color-text); text-decoration: none; }
+.mp-nav a.active { background: color-mix(in srgb, var(--color-primary) 12%, transparent); color: var(--color-primary); font-weight: 600; }
+.mp-main { min-width: 0; display: flex; flex-direction: column; }
+.mp-top { display: flex; align-items: center; gap: 10px; padding: 10px 20px; background: var(--color-surface); border-bottom: 1px solid var(--color-border); position: sticky; top: 0; z-index: 5; }
+.mp-content { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.mp-toggle { display: none; }
+.trend { display: flex; align-items: flex-end; gap: 3px; height: 120px; padding-top: 6px; }
+.trend .bar { flex: 1; background: var(--color-primary); border-radius: 3px 3px 0 0; min-height: 2px; opacity: .85; }
+.trend .bar:hover { opacity: 1; }
+@media (max-width: 860px) {
+  .mp-shell { grid-template-columns: 1fr; }
+  .mp-nav { position: fixed; z-index: 50; width: 250px; transform: translateX(-100%); transition: transform .2s; }
+  .mp-nav.open { transform: none; box-shadow: 0 10px 40px rgba(0,0,0,.25); }
+  .mp-toggle { display: inline-flex; }
+}
+
+/* -------------------------------------------------------- Registration ---- */
+.reg-page { max-width: 920px; margin: 0 auto; padding: 24px 16px 60px; display: flex; flex-direction: column; gap: 16px; }
+.reg-preview { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.reg-preview .ph { border: 1px dashed var(--color-border); border-radius: var(--radius); background: var(--color-bg) center / cover no-repeat; display: flex; align-items: center; justify-content: center; color: var(--color-muted); font-size: 12px; text-align: center; }
+.reg-preview .ph.logo { width: 120px; height: 120px; }
+.reg-preview .ph.store { width: 213px; height: 120px; }
+.reg-success { text-align: center; padding: 40px 16px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+
+/* ------------------------------------------------------- Credentials box -- */
+.secret-box { border: 2px solid var(--color-warning); border-radius: var(--radius); padding: 12px; background: color-mix(in srgb, var(--color-warning) 8%, transparent); display: flex; flex-direction: column; gap: 8px; }
+.secret-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.secret-row code { font-size: 15px; padding: 4px 8px; background: var(--color-surface); border-radius: 6px; border: 1px solid var(--color-border); word-break: break-all; }
+
+/* ------------------------------------------------------ Customer display -- */
+.cd-root { height: 100vh; display: grid; grid-template-rows: auto 1fr; overflow: hidden; }
+.cd-head { display: flex; align-items: center; gap: 14px; padding: 16px 28px; background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
+.cd-head img { width: 56px; height: 56px; border-radius: 12px; object-fit: cover; }
+.cd-body { display: grid; grid-template-columns: 1.3fr 1fr; min-height: 0; }
+.cd-items { overflow-y: auto; padding: 18px 28px; }
+.cd-item { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--color-border); }
+.cd-total { display: flex; flex-direction: column; justify-content: center; gap: 16px; padding: 28px; background: var(--color-surface); border-left: 1px solid var(--color-border); }
+.cd-total .r { display: flex; justify-content: space-between; }
+.cd-center { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; text-align: center; }
+.cd-center img.store { max-width: min(640px, 80vw); max-height: 45vh; border-radius: 16px; object-fit: cover; }
+.cd-center .qr { width: 300px; height: 300px; background: #fff; padding: 8px; border-radius: 12px; image-rendering: pixelated; }
+@media (max-width: 760px) {
+  .cd-body { grid-template-columns: 1fr; }
+  .cd-total { border-left: 0; border-top: 1px solid var(--color-border); }
+}

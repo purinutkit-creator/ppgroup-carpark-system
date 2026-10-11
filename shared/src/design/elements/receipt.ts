@@ -13,4 +13,11 @@ export const elements: ElementDef[] = [
   { path: 'receipt/pos/footer/text', label: 'Footer', role: 'receipt', defaults: { fontSize: 14, textAlign: 'center' }, sample: 'ขอบคุณที่ใช้บริการ' },
   { path: 'receipt/parking/header/title', label: 'หัวใบเสร็จค่าจอด', role: 'receipt', defaults: { fontSize: 22, fontWeight: 700, textAlign: 'center' }, sample: 'ใบเสร็จค่าจอดรถ' },
   { path: 'receipt/parking/totals/total', label: 'ยอดชำระค่าจอด', role: 'receipt', defaults: { fontSize: 24, fontWeight: 700 }, sample: '฿20.00' },
+  { path: 'receipt/pos/header/info', label: 'ข้อมูลร้าน (สาขา/เลขผู้เสียภาษี)', role: 'receipt', defaults: { fontSize: 14, textAlign: 'center' }, sample: 'เลขประจำตัวผู้เสียภาษี 0105555000000' },
+  { path: 'receipt/pos/items/meta', label: 'ตัวเลือกสินค้า', role: 'receipt', defaults: { fontSize: 13 }, sample: '  Iced · Extra shot' },
+  { path: 'receipt/pos/totals/row', label: 'สรุปยอด', role: 'receipt', defaults: { fontSize: 15 }, sample: 'ส่วนลด -50.00' },
+  { path: 'receipt/pos/payments/row', label: 'การชำระเงิน', role: 'receipt', defaults: { fontSize: 15 }, sample: 'เงินสด 1,300.00' },
+  { path: 'receipt/pos/parking/title', label: 'หัวข้อ Parking Validation', role: 'receipt', defaults: { fontSize: 18, fontWeight: 700, textAlign: 'center' }, sample: 'PARKING VALIDATION' },
+  { path: 'receipt/pos/parking/receiptId', label: 'Receipt ID (Parking)', role: 'receipt', defaults: { fontSize: 14, textAlign: 'center' }, sample: 'Receipt ID: M000124-B01-20261012-000158' },
+  { path: 'receipt/pos/parking/amount', label: 'ยอดซื้อที่ใช้คำนวณสิทธิ์', role: 'receipt', defaults: { fontSize: 16, fontWeight: 700, textAlign: 'center' }, sample: 'ยอดซื้อที่ใช้คำนวณสิทธิ์ ฿1,250.00' },
 ];

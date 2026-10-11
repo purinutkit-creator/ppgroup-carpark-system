@@ -100,3 +100,12 @@ export function confidenceTone(n: number | null | undefined): 'success' | 'warni
   const v = Number(n ?? 0);
   return v >= 90 ? 'success' : v >= 70 ? 'warning' : 'danger';
 }
+
+/** Where an alert's reference lives in the admin UI. */
+export function alertLink(a: { refType: string | null; refId: string | null }) {
+  if (a.refType === 'session' && a.refId) return `/admin/sessions/${a.refId}`;
+  if (a.refType === 'detection') return '/admin/review';
+  if (a.refType === 'gate') return '/admin/gates';
+  if (a.refType === 'payment') return '/admin/payments';
+  return null;
+}
