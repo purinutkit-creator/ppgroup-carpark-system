@@ -1,0 +1,31 @@
+# Render Blueprint. SQLite + uploads live on a persistent disk, which requires
+# a paid instance type (starter or above). On the free plan the filesystem is
+# ephemeral: the database is re-seeded on every deploy / restart.
+services:
+  - type: web
+    name: ppgroup-carpark
+    runtime: node
+    plan: starter
+    region: singapore
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.22.0
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /var/data
+      - key: PUBLIC_URL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: PAYMENT_PROVIDER
+        value: mock
+      - key: PROMPTPAY_ID
+        sync: false
+    disk:
+      name: parking-data
+      mountPath: /var/data
+      sizeGB: 5
