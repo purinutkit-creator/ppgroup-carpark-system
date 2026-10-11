@@ -5,6 +5,7 @@
 import { Router } from 'express';
 import QRCode from 'qrcode';
 import { q } from '../db/index.ts';
+import { config } from '../config.ts';
 import { body, h, HttpError, notFound, oneOf, str } from '../lib/http.ts';
 import { getSetting } from '../lib/settings.ts';
 import { quote, sessionByToken } from '../services/sessions.ts';
@@ -31,9 +32,10 @@ router.get(
     res.json({
       branding: b,
       design: getSetting('design'),
+      designVersion: q.get<{ id: number }>("SELECT id FROM config_versions WHERE module='design' ORDER BY id DESC LIMIT 1")?.id ?? null,
       paymentMethods: getSetting('payment').methods,
       privacyNotice: getSetting('pdpa').privacyNotice,
-      provider: process.env.PAYMENT_PROVIDER ?? 'mock',
+      provider: config.payment.provider,
     });
   }),
 );
