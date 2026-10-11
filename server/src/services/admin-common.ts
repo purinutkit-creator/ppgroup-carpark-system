@@ -44,6 +44,11 @@ export function changed(before: Row, patch: Record<string, unknown>): Record<str
   return out;
 }
 
+/** The previous values of the columns in `diff` (audit "before"). */
+export function beforeOf(row: Row, diff: Record<string, unknown>): Row {
+  return pickCols(row, Object.keys(diff));
+}
+
 export function pickCols(row: Row, cols: string[]): Row {
   const out: Row = {};
   for (const c of cols) out[c] = row[c];

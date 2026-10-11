@@ -180,9 +180,14 @@ export async function issueEntry(
     if (!gateSettings(gate).allowTicketWithoutPlate && !opts.userId) throw new HttpError(403, 'UNPLATED_TICKET_NOT_ALLOWED');
     plate = null;
   }
+  // A booked reservation for this plate (±30 min window) checks in automatically and bypasses "lot full".
+  const reservation = plate?.key
+    ? q.get("SELECT id FROM reservations WHERE plate_key=? AND status='BOOKED' AND start_at<=? AND end_at>=? ORDER BY start_at LIMIT 1", plate.key, new Date(Date.now() + 30 * 60_000).toISOString(), nowIso())
+    : undefined;
   let res;
   try {
     res = createSession({
+      reservationId: reservation?.id ?? null,
       siteId: gate.site_id,
       zoneId: gate.zone_id,
       gateId: gate.id,

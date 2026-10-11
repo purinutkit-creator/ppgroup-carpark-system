@@ -8,7 +8,7 @@ import { body, bool, h, int, oneOf, reqStr, str, conflict } from '../lib/http.ts
 import { requirePerm } from '../auth/middleware.ts';
 import { audit } from '../lib/audit.ts';
 import { emit } from '../lib/realtime.ts';
-import { assertSiteWrite, changed, idParam, mustGet, strList } from './admin-common.ts';
+import { assertSiteWrite, beforeOf, changed, idParam, mustGet, strList } from './admin-common.ts';
 
 export const sitesRouter = Router();
 const guard = requirePerm('sites.manage');
@@ -97,7 +97,7 @@ sitesRouter.put(
     if (b.active !== undefined) patch.active = bool(b, 'active') ? 1 : 0;
     const diff = changed(before, patch);
     q.update('sites', id, diff);
-    audit(req, { action: 'site.update', entityType: 'site', entityId: id, siteId: id, before: pick(before, diff), after: diff });
+    audit(req, { action: 'site.update', entityType: 'site', entityId: id, siteId: id, before: beforeOf(before, diff), after: diff });
     emit.staff('occupancy', { siteId: id });
     res.json({ ok: true });
   }),
@@ -160,7 +160,7 @@ sitesRouter.put(
     assertSiteWrite(req, before.site_id);
     const diff = changed(before, zoneRow(body(req), true));
     q.update('zones', id, diff);
-    audit(req, { action: 'zone.update', entityType: 'zone', entityId: id, siteId: before.site_id, before: pick(before, diff), after: diff });
+    audit(req, { action: 'zone.update', entityType: 'zone', entityId: id, siteId: before.site_id, before: beforeOf(before, diff), after: diff });
     res.json({ ok: true });
   }),
 );
@@ -221,7 +221,7 @@ sitesRouter.put(
     assertSiteWrite(req, before.site_id);
     const diff = changed(before, gateRow(body(req), before.site_id, true, json<GateSettings>(before.settings_json, {})));
     q.update('gates', id, diff);
-    audit(req, { action: 'gate.update', entityType: 'gate', entityId: id, siteId: before.site_id, before: pick(before, diff), after: diff });
+    audit(req, { action: 'gate.update', entityType: 'gate', entityId: id, siteId: before.site_id, before: beforeOf(before, diff), after: diff });
     emit.gate(id, 'gate:config', { gateId: id });
     res.json({ ok: true });
   }),
@@ -240,8 +240,3 @@ sitesRouter.delete(
   }),
 );
 
-function pick(row: Record<string, unknown>, keys: Record<string, unknown>) {
-  const out: Record<string, unknown> = {};
-  for (const k of Object.keys(keys)) out[k] = row[k];
-  return out;
-}
