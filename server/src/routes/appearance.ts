@@ -45,7 +45,16 @@ router.get(
   '/design',
   requirePerm('appearance.edit'),
   h((_req, res) => {
-    res.json({ config: getSetting('design'), version: currentVersion(), systems: SYSTEMS, groups: SYSTEM_GROUPS });
+    const b = getSetting('branding');
+    res.json({
+      config: getSetting('design'),
+      version: currentVersion(),
+      systems: SYSTEMS,
+      groups: SYSTEM_GROUPS,
+      // for realistic previews (print templates, logos)
+      branding: { siteName: b.siteName, logoUrl: b.logoUrl },
+      print: { ticket: getSetting('ticket'), receipt: getSetting('receipt') },
+    });
   }),
 );
 

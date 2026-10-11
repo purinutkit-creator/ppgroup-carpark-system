@@ -32,6 +32,8 @@ export const SYSTEM_GROUPS: Record<string, { label: string; systems: SystemId[] 
   merchant: { label: 'All Merchant POS', systems: ['merchant-pos', 'merchant-portal'] },
   customer: { label: 'Customer Screens', systems: ['customer-web', 'customer-display'] },
   print: { label: 'Print Templates', systems: ['receipt', 'parking-ticket', 'reports', 'print-templates'] },
+  customerKiosk: { label: 'Parking Kiosk + Customer Website', systems: ['payment-kiosk', 'customer-web'] },
+  posReceipt: { label: 'POS + Receipt', systems: ['merchant-pos', 'customer-display', 'receipt'] },
 };
 
 export type FontRole = 'primary' | 'heading' | 'number' | 'button' | 'receipt' | 'kiosk' | 'plate';
@@ -86,6 +88,8 @@ export interface DesignTokens {
   modalStyle: 'center' | 'sheet';
   cardStyle: 'flat' | 'outlined' | 'elevated';
   backgroundImage: string; // media URL or ''
+  /** Per-system logo override (media URL); '' = use branding logo. */
+  logoImage?: string;
 }
 
 export interface LevelOverride {

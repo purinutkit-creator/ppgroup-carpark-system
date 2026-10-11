@@ -17,17 +17,19 @@
  *      moment;
  *   2. otherwise → amount + free_minutes × (hourly rate of the session's rate
  *      version ÷ 60);
- *   3. full waivers without a rule snapshot have no fixed value (null) and are
- *      counted separately.
+ *   3. full waivers → the gross fee accrued at the moment of the waiver.
+ * Every value is capped at the gross fee the session had accrued when the
+ * discount was granted (calculateFee from entry to created_at), so stacked
+ * rewards never count for more than the fee they could have removed.
  * Merchant breakdowns split a discount's value across the receipts that earned
  * it in proportion to each receipt's spend.
  */
 import type { Request } from 'express';
 import { q, json, type Row } from '../db/index.ts';
 import { badRequest, r2 } from '../lib/http.ts';
-import { provinceByCode } from '@pp/shared';
+import { calculateFee, provinceByCode, type RateConfig } from '@pp/shared';
 import { quote } from './sessions.ts';
-import { rateForVersion } from './rates.ts';
+import { holidayDates, rateForVersion } from './rates.ts';
 
 export const TZ_OFFSET_MIN = 420;
 const TZ_SQL = "'+7 hours'";
@@ -140,22 +142,49 @@ const inIds = (col: string, ids: number[]) => `${col} IN (${ids.map(Number).join
 
 // ------------------------------------------------------- discount value ---
 
-const rateCache = new Map<number, number>();
-function hourlyRate(versionId: number | null) {
-  if (versionId == null) return rateForVersion(null).hourlyRate;
-  if (!rateCache.has(versionId)) rateCache.set(versionId, rateForVersion(versionId).hourlyRate);
+/** Session columns discountValue() needs; join parking_sessions as `s`. */
+const DISCOUNT_SESSION_COLS = 's.rate_version_id, s.entry_at session_entry_at, s.site_id session_site_id, s.lost_ticket session_lost_ticket';
+
+const rateCache = new Map<number, RateConfig>();
+function rateCfg(versionId: number | null): RateConfig {
+  if (versionId == null) return rateForVersion(null);
+  if (!rateCache.has(versionId)) rateCache.set(versionId, rateForVersion(versionId));
   return rateCache.get(versionId)!;
 }
+// Rate versions are immutable; holidays can change, so they are cached briefly.
+const holidayCache = new Map<number, { at: number; dates: string[] }>();
+function holidays(siteId: number) {
+  const hit = holidayCache.get(siteId);
+  if (hit && Date.now() - hit.at < 60_000) return hit.dates;
+  const dates = holidayDates(siteId);
+  holidayCache.set(siteId, { at: Date.now(), dates });
+  return dates;
+}
 
-/** THB value of a discount row (see header). Expects rate_version_id joined in. */
+/** Gross fee the session had accrued when the discount was granted. */
+function grossAtGrant(d: Row): number | null {
+  if (!d.session_entry_at) return null;
+  return calculateFee({
+    entryAt: new Date(d.session_entry_at),
+    endAt: new Date(d.created_at),
+    config: rateCfg(d.rate_version_id ?? null),
+    holidays: holidays(d.session_site_id),
+    tzOffsetMinutes: TZ_OFFSET_MIN,
+    lostTicket: !!d.session_lost_ticket,
+  }).amount;
+}
+
+/** THB value of a discount row (see header). Expects DISCOUNT_SESSION_COLS joined in. */
 export function discountValue(d: Row): number | null {
+  const cap = grossAtGrant(d);
+  const capped = (v: number) => r2(cap == null ? v : Math.min(v, cap));
   const rules = json<Array<{ value?: number }> | null>(d.rules_json, null);
   if (Array.isArray(rules) && rules.some((r) => typeof r?.value === 'number')) {
-    return r2(rules.reduce((a, r) => a + (Number(r.value) || 0), 0));
+    return capped(rules.reduce((a, r) => a + (Number(r.value) || 0), 0));
   }
-  if (d.full_waiver && !d.amount && !d.free_minutes) return null;
+  if (d.full_waiver) return cap;
   const minutes = Number(d.free_minutes) || 0;
-  return r2((Number(d.amount) || 0) + (minutes ? (minutes * hourlyRate(d.rate_version_id ?? null)) / 60 : 0));
+  return capped((Number(d.amount) || 0) + (minutes ? (minutes * rateCfg(d.rate_version_id ?? null).hourlyRate) / 60 : 0));
 }
 
 // ------------------------------------------------------------- dashboard ---
@@ -205,7 +234,7 @@ function siteKpis(siteIds: number[], today: { from: string; to: string }) {
   )!.m;
 
   const discounts = q.all(
-    `SELECT d.*, s.rate_version_id FROM parking_discounts d JOIN parking_sessions s ON s.id=d.session_id
+    `SELECT d.*, ${DISCOUNT_SESSION_COLS} FROM parking_discounts d JOIN parking_sessions s ON s.id=d.session_id
       WHERE ${S('s.site_id')} AND d.status<>'REVOKED' AND d.created_at BETWEEN ? AND ?`,
     today.from,
     today.to,
@@ -370,7 +399,7 @@ export function summary(req: Request, opts: { from: string; to: string; group: G
     if (e) e.refunds = r2(r.amt);
   }
   for (const d of q.all(
-    `SELECT d.*, s.rate_version_id FROM parking_discounts d JOIN parking_sessions s ON s.id=d.session_id
+    `SELECT d.*, ${DISCOUNT_SESSION_COLS} FROM parking_discounts d JOIN parking_sessions s ON s.id=d.session_id
       WHERE ${and(sf('s.site_id'))} AND d.status<>'REVOKED' AND d.created_at BETWEEN ? AND ?`,
     from,
     to,
@@ -431,7 +460,7 @@ export function validationsByMerchant(req: Request, opts: { from: string; to: st
   const discountIds = [...new Set(usages.map((u) => u.discount_id).filter(Boolean))] as number[];
   const discounts = new Map<number, Row>();
   if (discountIds.length) {
-    for (const d of q.all(`SELECT d.*, s.rate_version_id FROM parking_discounts d JOIN parking_sessions s ON s.id=d.session_id WHERE ${inIds('d.id', discountIds)}`)) discounts.set(d.id, d);
+    for (const d of q.all(`SELECT d.*, ${DISCOUNT_SESSION_COLS} FROM parking_discounts d JOIN parking_sessions s ON s.id=d.session_id WHERE ${inIds('d.id', discountIds)}`)) discounts.set(d.id, d);
   }
   const spendPerDiscount = new Map<number, number>();
   for (const u of usages) if (u.discount_id) spendPerDiscount.set(u.discount_id, (spendPerDiscount.get(u.discount_id) ?? 0) + (Number(u.amount) || 0));
@@ -490,7 +519,7 @@ export function validationsByMerchant(req: Request, opts: { from: string; to: st
 export function exemptions(req: Request, opts: { from: string; to: string; siteId?: number | null }) {
   const sf = siteFilter(req, 's.site_id', opts.siteId);
   const discountRows = q.all(
-    `SELECT d.*, s.parking_no, s.plate_text, s.province, s.site_id, s.rate_version_id,
+    `SELECT d.*, s.parking_no, s.plate_text, s.province, s.site_id, ${DISCOUNT_SESSION_COLS},
             cu.display_name created_by_name, cu.username created_by_username,
             au.display_name approved_by_name, au.username approved_by_username,
             ru.display_name revoked_by_name

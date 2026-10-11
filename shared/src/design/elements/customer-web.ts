@@ -12,4 +12,10 @@ export const elements: ElementDef[] = [
   { path: 'customer-web/session/details/value', label: 'ค่ารายละเอียด', role: 'number', defaults: { fontSize: 15, fontWeight: 600 }, sample: '10:30 น.' },
   { path: 'customer-web/session/amount/total', label: 'ยอดชำระ', role: 'number', defaults: { fontSize: 36, fontWeight: 700, textAlign: 'center' }, sample: '฿40.00' },
   { path: 'customer-web/session/actions/pay', label: 'ปุ่มชำระเงิน', role: 'button', defaults: { fontSize: 18, fontWeight: 600 }, sample: 'ชำระค่าจอดรถ' },
+  { path: 'customer-web/session/history/title', label: 'หัวข้อประวัติ', role: 'heading', defaults: { fontSize: 16, fontWeight: 600 }, sample: 'ประวัติส่วนลดและการชำระ' },
+  { path: 'customer-web/session/history/item', label: 'รายการประวัติ', role: 'primary', defaults: { fontSize: 14 }, sample: 'ร้าน ABC ฿1,250.00' },
+  { path: 'customer-web/session/notice/overstay', label: 'แจ้งเตือนเกินเวลา', role: 'primary', defaults: { fontSize: 15, fontWeight: 600, textAlign: 'center' }, sample: 'เกินเวลาออกหลังชำระ' },
+  { path: 'customer-web/payment/qr/amount', label: 'ยอดบนหน้า QR', role: 'number', defaults: { fontSize: 34, fontWeight: 700, textAlign: 'center' }, sample: '฿40.00' },
+  { path: 'customer-web/payment/status/message', label: 'สถานะการชำระ', role: 'primary', defaults: { fontSize: 18, fontWeight: 600, textAlign: 'center' }, sample: 'ชำระเงินสำเร็จ' },
+  { path: 'customer-web/payment/deadline/value', label: 'เวลาที่ต้องออก', role: 'number', defaults: { fontSize: 34, fontWeight: 700, textAlign: 'center' }, sample: '11:45' },
 ];

@@ -99,7 +99,7 @@ export interface PricedCart {
 }
 
 function discountAmount(d: CartItemInput['discount'], base: number): number {
-  if (d == null || d === '' as unknown) return 0;
+  if (d == null || (d as unknown) === '') return 0;
   if (typeof d === 'object') {
     const p = Number(d.percent);
     if (!(p >= 0 && p <= 100)) throw badRequest('VALIDATION', 'discount percent must be 0–100');
@@ -289,8 +289,7 @@ export function receiptData(saleId: number) {
   const m = getMerchant(s.merchant_id);
   const info = receiptInfo(m);
   const view = saleView(s);
-  const meta = json<{ change?: number }>(null, {});
-  const change = view.payments.reduce((c, p) => c + (Number((p as { change?: number }).change) || 0), meta.change ?? 0);
+  const change = view.payments.reduce((c, p) => c + (Number(p.change) || 0), 0);
   return {
     store: {
       name: m.name,
@@ -406,9 +405,9 @@ function shiftForMovement(s: Row, userId: number | null) {
 }
 
 /** Void (same business day) — full reversal; parking discount follows the refund policy. */
-export function voidSale(s: Row, opts: { reason: string; userId: number | null; tz: number }) {
+export function voidSale(s: Row, opts: { reason: string; userId: number | null; tz: number; anyDay?: boolean }) {
   if (s.status !== 'PAID') throw conflict('INVALID_STATUS', `receipt is ${s.status}`);
-  if (ymd(new Date(s.issued_at), opts.tz) !== ymd(new Date(), opts.tz)) throw conflict('VOID_WINDOW_CLOSED', 'ยกเลิกได้เฉพาะใบเสร็จของวันนี้ — ใช้การคืนเงินแทน');
+  if (!opts.anyDay && ymd(new Date(s.issued_at), opts.tz) !== ymd(new Date(), opts.tz)) throw conflict('VOID_WINDOW_CLOSED', 'ยกเลิกได้เฉพาะใบเสร็จของวันนี้ — ใช้การคืนเงินแทน');
   tx(() => {
     const upd = q.run("UPDATE pos_sales SET status='VOIDED', voided_at=?, voided_by=?, void_reason=? WHERE id=? AND status='PAID'", nowIso(), opts.userId, opts.reason, s.id);
     if (!upd.changes) throw conflict('INVALID_STATUS');
@@ -571,4 +570,101 @@ export function salesReport(merchantId: number, from: string, to: string, tz: nu
     byCashier: [...cashiers.values()].map(round).sort((a, b) => b.net - a.net),
     byShift: shifts,
   };
+}
+
+// -------------------------------------------------------- external POS API --
+
+export interface ExternalReceiptInput {
+  externalRef: string;
+  branchCode?: string | null;
+  issuedAt?: string | null;
+  items?: Array<{ name: string; qty?: number; unitPrice?: number; price?: number; total?: number; sku?: string }>;
+  subtotal: number;
+  discount?: number;
+  serviceCharge?: number;
+  vat?: number;
+  vatMode?: 'INCLUDED' | 'EXCLUDED';
+  total: number;
+  payments?: Array<{ method: string; amount: number; ref?: string }>;
+  memberPhone?: string | null;
+  idempotencyKey?: string | null;
+}
+
+/**
+ * A third-party POS reports a completed sale. Amounts are the merchant POS's
+ * own figures (they are the system of record for that sale); we issue our
+ * immutable receipt number + verification token so the receipt can be used
+ * for parking validation exactly like an internal one.
+ */
+export function createExternalSale(merchantId: number, deviceId: number, input: ExternalReceiptInput) {
+  const merchant = getMerchant(merchantId);
+  if (!['ACTIVE', 'APPROVED'].includes(merchant.status)) throw forbidden('MERCHANT_NOT_ACTIVE');
+  const externalRef = String(input.externalRef ?? '').trim().slice(0, 80);
+  if (!externalRef) throw badRequest('VALIDATION', 'externalRef is required');
+  const idem = `ext:${merchantId}:${String(input.idempotencyKey || externalRef).slice(0, 80)}`;
+  const prev = q.get('SELECT id FROM pos_sales WHERE idempotency_key=?', idem);
+  if (prev) return { saleId: prev.id, replay: true };
+  const branch = input.branchCode
+    ? q.get('SELECT * FROM merchant_branches WHERE merchant_id=? AND code=? AND active=1', merchantId, String(input.branchCode).toUpperCase())
+    : q.get('SELECT * FROM merchant_branches WHERE merchant_id=? AND active=1 ORDER BY code LIMIT 1', merchantId);
+  if (!branch) throw badRequest('BRANCH_NOT_FOUND');
+  const money = (v: unknown, k: string, required = false) => {
+    if (v === undefined || v === null || v === '') {
+      if (required) throw badRequest('VALIDATION', `${k} is required`);
+      return 0;
+    }
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < 0) throw badRequest('VALIDATION', `${k} must be >= 0`);
+    return r2(n);
+  };
+  const subtotal = money(input.subtotal, 'subtotal', true);
+  const discount = money(input.discount, 'discount');
+  const serviceCharge = money(input.serviceCharge, 'serviceCharge');
+  const vat = money(input.vat, 'vat');
+  const total = money(input.total, 'total', true);
+  const vatMode = input.vatMode === 'EXCLUDED' ? 'EXCLUDED' : 'INCLUDED';
+  if (!(total > 0)) throw badRequest('VALIDATION', 'total must be > 0');
+  const expected = r2(subtotal - discount + serviceCharge + (vatMode === 'EXCLUDED' ? vat : 0));
+  if (Math.abs(expected - total) > 0.05) throw badRequest('TOTAL_MISMATCH', `subtotal - discount + serviceCharge${vatMode === 'EXCLUDED' ? ' + vat' : ''} = ${expected} ≠ total ${total}`);
+  const issued = input.issuedAt ? new Date(input.issuedAt) : new Date();
+  if (Number.isNaN(issued.getTime())) throw badRequest('VALIDATION', 'issuedAt must be ISO-8601');
+  if (issued.getTime() > Date.now() + 5 * 60_000) throw badRequest('VALIDATION', 'issuedAt is in the future');
+  const items = (Array.isArray(input.items) ? input.items : []).slice(0, 200).map((it) => {
+    const qty = Number(it.qty ?? 1) || 1;
+    const unit = r2(Number(it.unitPrice ?? it.price ?? 0) || 0);
+    const net = r2(Number(it.total ?? unit * qty) || 0);
+    return { productId: 0, name: String(it.name ?? '-').slice(0, 120), sku: it.sku ? String(it.sku).slice(0, 40) : null, variant: null, modifiers: [], qty, unitPrice: unit, gross: net, discount: 0, net, vatApplicable: true, note: null };
+  });
+  const payments = (Array.isArray(input.payments) && input.payments.length ? input.payments : [{ method: 'EXTERNAL', amount: total }]).map((p) => ({
+    method: String(p.method ?? 'EXTERNAL').toUpperCase().slice(0, 20),
+    amount: r2(Number(p.amount) || 0),
+    ref: (p as { ref?: string }).ref ? String((p as { ref?: string }).ref).slice(0, 80) : null,
+  }));
+  const tz = siteTz(branch.site_id ?? merchant.site_id);
+  const saleId = tx(() => {
+    const day = ymd(issued, tz);
+    const seq = nextSequence(`receipt:${merchantId}:${branch.id}`, day);
+    const receiptNo = `${merchant.code}-${branch.code}-${day}-${String(seq).padStart(6, '0')}`;
+    return q.insert('pos_sales', {
+      receipt_no: receiptNo,
+      merchant_id: merchantId,
+      branch_id: branch.id,
+      device_id: deviceId,
+      member_phone: input.memberPhone ? String(input.memberPhone).replace(/[^0-9+]/g, '').slice(0, 20) : null,
+      items_json: JSON.stringify(items),
+      subtotal,
+      discount,
+      service_charge: serviceCharge,
+      vat,
+      vat_mode: vatMode,
+      total,
+      payments_json: JSON.stringify(payments),
+      verification_token: randomToken(9),
+      idempotency_key: idem,
+      issued_at: issued.toISOString(),
+    });
+  });
+  const sale = q.get('SELECT * FROM pos_sales WHERE id=?', saleId)!;
+  emit.merchant(merchantId, 'pos:sale', { saleId, receiptNo: sale.receipt_no, total, external: true, externalRef });
+  return { saleId, replay: false };
 }

@@ -142,6 +142,7 @@ export function tokensToCssVars(t: DesignTokens, fonts: Record<FontRole, string>
     '--shadow': SHADOWS[t.shadow] ?? SHADOWS.sm,
     '--space': `${t.spacing}px`,
     '--bg-image': t.backgroundImage ? `url("${t.backgroundImage}")` : 'none',
+    '--logo-image': t.logoImage ? `url("${t.logoImage}")` : 'none',
   };
   for (const [role, fam] of Object.entries(fonts)) v[`--font-${role}`] = fontStack(cfg, fam);
   return Object.entries(v)

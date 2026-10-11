@@ -31,7 +31,7 @@ export function getMerchant(id: number): Row {
 }
 
 /** Public shape (never exposes verification_key). */
-export function merchantView(m: Row) {
+export function merchantView(m: Row): Row {
   const { verification_key: _vk, receipt_info_json, contact_json, ...rest } = m;
   return { ...rest, receipt_info: json<ReceiptInfo>(receipt_info_json, {}), contact: json<Record<string, string>>(contact_json, {}) };
 }
