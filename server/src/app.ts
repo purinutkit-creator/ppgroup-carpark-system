@@ -18,6 +18,7 @@ import { router as reports } from './routes/reports.ts';
 import { router as merchants } from './routes/merchants.ts';
 import { router as pos } from './routes/pos.ts';
 import { router as appearance } from './routes/appearance.ts';
+import { router as media } from './routes/media.ts';
 
 export function createApp() {
   const app = express();
@@ -53,6 +54,7 @@ export function createApp() {
   app.use('/api/merchants', merchants);
   app.use('/api/pos', pos);
   app.use('/api/appearance', appearance);
+  app.use('/api/media', media);
   app.use('/api', (_req, res) => res.status(404).json({ error: 'NOT_FOUND' }));
 
   // Public uploads (logos, banners, fonts, product images). LPR images live under
