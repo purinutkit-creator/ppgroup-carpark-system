@@ -441,6 +441,8 @@ export function refundSale(
       return { index: Number(x.index), name: l.name, qty, amount: r2((l.net / l.qty) * qty * ratio) };
     });
     amount = r2(items.reduce((t, i) => t + i.amount, 0));
+  } else if (opts.amount === undefined || opts.amount === null) {
+    amount = remaining; // no amount and no items = refund everything still refundable
   } else {
     amount = r2(Number(opts.amount));
   }
