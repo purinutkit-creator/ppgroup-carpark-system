@@ -11,6 +11,7 @@ import JsBarcode from 'jsbarcode';
 import { EscPos, PAPER_DOTS, toBase64 } from '@pp/shared/escpos';
 import { ELEMENTS, fontStack, resolveTypography, type DesignConfig } from '@pp/shared/design/index';
 import { api } from '../lib/api';
+import { getLocalPrinter, writeLocal } from './localPrinter';
 
 export type Align = 'left' | 'center' | 'right';
 
@@ -242,6 +243,14 @@ export interface PrinterTarget {
  *  - none: open the browser print dialog with the rendered image
  */
 export async function printDoc(doc: PrintDoc, design: DesignConfig | null, printer?: PrinterTarget | null, opts: { device?: boolean; job?: string; ref?: string } = {}) {
+  // A printer chosen on this computer (USB / serial / OS dialog) always wins.
+  const local = getLocalPrinter();
+  if (local) {
+    const canvas = await renderDoc({ ...doc, paperWidth: local.paperWidth }, design);
+    if (local.kind === 'browser') return browserPrint(canvas);
+    await writeLocal(local, canvasToEscPos(canvas, { cut: doc.cut, openDrawer: doc.openDrawer }));
+    return { ok: true, via: local.kind };
+  }
   const canvas = await renderDoc(doc, design);
   if (!printer?.id && !printer?.connection?.bridgeUrl) return browserPrint(canvas);
   const bytes = canvasToEscPos(canvas, { cut: doc.cut, openDrawer: doc.openDrawer });

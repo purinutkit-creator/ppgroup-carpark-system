@@ -161,6 +161,7 @@ export default function Pos() {
         <Button size="sm" onClick={() => setHeldOpen(true)}>บิลที่พักไว้ ({m.heldCount})</Button>
         <Button size="sm" onClick={() => setHistoryOpen(true)}>ใบเสร็จวันนี้</Button>
         <Button size="sm" onClick={() => setShiftOpen(true)}>กะ / เงินสด</Button>
+        <Link className="btn btn-sm" to="/printer">🖨️ เครื่องพิมพ์</Link>
         {user?.permissions.includes('merchant.portal') && <Link className="btn btn-sm" to="/merchant">Portal</Link>}
         <Button size="sm" variant="ghost" onClick={logout}>ออก</Button>
       </div>

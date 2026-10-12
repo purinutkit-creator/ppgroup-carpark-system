@@ -48,6 +48,7 @@ const MerchantPortal = p(() => import('./pages/merchant/Portal'));
 const Pos = p(() => import('./pages/pos/Pos'));
 const CustomerDisplay = p(() => import('./pages/pos/CustomerDisplay'));
 const CameraStation = p(() => import('./pages/kiosk/CameraStation'));
+const PrinterSetup = p(() => import('./pages/PrinterSetup'));
 
 const Loading = () => <div className="page-loading">กำลังโหลด…</div>;
 
@@ -67,6 +68,7 @@ export default function App() {
               <Route path="/setup" element={<DeviceSetup />} />
 
               <Route path="/p/:token" element={<Sys system="customer-web"><ParkingStatus /></Sys>} />
+              <Route path="/printer" element={<Sys system="admin"><PrinterSetup /></Sys>} />
               <Route path="/camera" element={<Sys system="entry-kiosk"><CameraStation /></Sys>} />
               <Route path="/kiosk/entry" element={<Sys system="entry-kiosk"><EntryKiosk /></Sys>} />
               <Route path="/kiosk/exit" element={<Sys system="exit-kiosk"><ExitKiosk /></Sys>} />

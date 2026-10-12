@@ -58,6 +58,7 @@ export default function DeviceSetup() {
             <Button variant="primary" onClick={() => verify(key.trim())}>
               บันทึก
             </Button>
+            <a className="btn" href="/printer">🖨️ เครื่องพิมพ์</a>
             {info?.device && TARGET[info.device.type] && <Button onClick={() => nav(TARGET[info.device.type])}>เปิดหน้าจอ</Button>}
             <Button
               variant="ghost"

@@ -117,6 +117,7 @@ export default function AdminLayout() {
             ☰
           </Button>
           <span className="spacer" />
+          <a href="/printer" className="btn btn-sm">🖨️ เครื่องพิมพ์</a>
           <span className="small muted">
             {user?.displayName} · {user?.role}
           </span>
