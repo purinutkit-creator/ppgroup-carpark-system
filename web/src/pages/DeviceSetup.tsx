@@ -4,10 +4,12 @@
  */
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { get, getDeviceKey, setDeviceKey } from '../lib/api';
+import { getDeviceKey, setDeviceKey, storage, ApiError } from '../lib/api';
 import { Button, Card, Field, Input, errorText } from '../components/ui';
 
-const TARGET: Record<string, string> = { ENTRY_KIOSK: '/kiosk/entry', EXIT_KIOSK: '/kiosk/exit', PAYMENT_KIOSK: '/kiosk/pay', COUNTER: '/counter', DISPLAY: '/display' };
+const TARGET: Record<string, string> = { CAMERA: '/camera', ENTRY_KIOSK: '/kiosk/entry', EXIT_KIOSK: '/kiosk/exit', PAYMENT_KIOSK: '/kiosk/pay', COUNTER: '/counter', DISPLAY: '/display' };
+
+export const CAMERA_KEY = 'pp.cameraKey';
 
 export default function DeviceSetup() {
   const [sp] = useSearchParams();
@@ -18,14 +20,17 @@ export default function DeviceSetup() {
 
   const verify = async (k: string) => {
     setErr(null);
-    setDeviceKey(k);
     try {
-      const r = await get('/api/kiosk/bootstrap', { device: true });
+      const res = await fetch('/api/kiosk/bootstrap', { headers: { 'X-Device-Key': k } });
+      const r = await res.json();
+      if (!res.ok) throw new ApiError(res.status, r.error ?? 'ERROR', r.message ?? r.error ?? res.statusText);
+      // A webcam station can run on the same PC as a kiosk, so its key is stored separately.
+      if (r.device?.type === 'CAMERA') storage.set(CAMERA_KEY, k);
+      else setDeviceKey(k);
       setInfo(r);
       const next = sp.get('next') ?? TARGET[r.device?.type ?? ''];
       if (sp.get('key') && next) nav(next, { replace: true });
     } catch (e) {
-      setDeviceKey(null);
       setInfo(null);
       setErr(errorText(e));
     }

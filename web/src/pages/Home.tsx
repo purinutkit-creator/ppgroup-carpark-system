@@ -10,6 +10,7 @@ const LINKS = [
   { to: '/kiosk/entry', title: 'Entry Kiosk', desc: 'ตู้ทางเข้า (ต้องตั้งค่า Device Key)' },
   { to: '/kiosk/exit', title: 'Exit Kiosk', desc: 'ตู้ทางออก' },
   { to: '/kiosk/pay', title: 'Payment Kiosk', desc: 'ตู้ชำระค่าจอดรถ' },
+  { to: '/camera', title: 'กล้อง Webcam (อ่านป้าย)', desc: 'ใช้กล้องของคอมพิวเตอร์อ่านป้ายทะเบียนที่ทางเข้า/ออก' },
   { to: '/setup', title: 'ตั้งค่าอุปกรณ์', desc: 'ผูก Kiosk / Counter กับ Device Key' },
 ];
 

@@ -14,7 +14,7 @@ import { createPayment, payCash, publicPayment } from '../services/payments.ts';
 import { audit } from '../lib/audit.ts';
 
 export const router = Router();
-const KIOSKS = ['ENTRY_KIOSK', 'EXIT_KIOSK', 'PAYMENT_KIOSK', 'DISPLAY', 'COUNTER'];
+const KIOSKS = ['ENTRY_KIOSK', 'EXIT_KIOSK', 'PAYMENT_KIOSK', 'DISPLAY', 'COUNTER', 'CAMERA'];
 router.use(requireUserOrDevice(['gate.control', 'kiosk_content.manage', 'payment.cash'], KIOSKS));
 
 function sessionForKiosk(req: Request, id: number) {
