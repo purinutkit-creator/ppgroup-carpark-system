@@ -89,12 +89,38 @@ async function openUsb(p: LocalPrinter) {
   return { d, ep: ep.endpointNumber as number };
 }
 
+/**
+ * Every system on this computer (entry kiosk, POS, counter, admin …) shares one
+ * printer, possibly from several tabs at once. A USB interface can be claimed by
+ * one tab at a time, so jobs are serialized across tabs with a Web Lock and the
+ * device is released right after each job.
+ */
+async function exclusive<T>(fn: () => Promise<T>): Promise<T> {
+  const locks = (navigator as any).locks;
+  return locks ? locks.request('pp-local-printer', fn) : fn();
+}
+
 async function writeUsb(p: LocalPrinter, data: Uint8Array) {
-  const { d, ep } = await openUsb(p);
-  for (let i = 0; i < data.length; i += 16384) {
-    const r = await d.transferOut(ep, data.subarray(i, i + 16384));
-    if (r.status !== 'ok') throw new Error(`USB transfer ${r.status}`);
-  }
+  return exclusive(async () => {
+    let dev: any = null;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const { d, ep } = await openUsb(p);
+        dev = d;
+        for (let i = 0; i < data.length; i += 16384) {
+          const r = await d.transferOut(ep, data.subarray(i, i + 16384));
+          if (r.status !== 'ok') throw new Error(`USB transfer ${r.status}`);
+        }
+        break;
+      } catch (e) {
+        // another tab may still be closing the device
+        if (attempt >= 3) throw e;
+        await new Promise((r) => setTimeout(r, 400));
+      } finally {
+        if (dev?.opened) await dev.close().catch(() => undefined);
+      }
+    }
+  });
 }
 
 // ------------------------------------------------------------- Web Serial --
@@ -115,13 +141,16 @@ async function writeSerial(p: LocalPrinter, data: Uint8Array) {
     return !p.usbVendorId || (i.usbVendorId === p.usbVendorId && i.usbProductId === p.usbProductId);
   });
   if (!port) throw new Error('ไม่พบพอร์ตเครื่องพิมพ์ที่เลือกไว้ — กด "ค้นหาเครื่องพิมพ์" อีกครั้ง');
-  if (!port.writable) await port.open({ baudRate: p.baudRate ?? 9600 });
-  const w = port.writable.getWriter();
-  try {
-    await w.write(data);
-  } finally {
-    w.releaseLock();
-  }
+  await exclusive(async () => {
+    if (!port.writable) await port.open({ baudRate: p.baudRate ?? 9600 });
+    const w = port.writable.getWriter();
+    try {
+      await w.write(data);
+    } finally {
+      w.releaseLock();
+      await port.close().catch(() => undefined);
+    }
+  });
 }
 
 /** Send raw ESC/POS bytes to the printer chosen on this computer. */

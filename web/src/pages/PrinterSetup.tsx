@@ -77,6 +77,12 @@ export default function PrinterSetup() {
             <Button onClick={test} loading={busy}>พิมพ์ทดสอบ</Button>
             <Button variant="ghost" onClick={() => save(null)}>เลิกใช้</Button>
           </div>
+        ) : null}
+        {cur ? (
+          <div className="small muted mt">
+            ใช้พิมพ์ให้ทุกระบบบนคอมพิวเตอร์เครื่องนี้: บัตรจอดรถ (ตู้ทางเข้า) · ใบเสร็จค่าจอด (ตู้ชำระเงิน / ตู้ทางออก) · ใบเสร็จ POS ·
+            ประชาสัมพันธ์ · ออกบัตรใหม่ / ใบกำกับภาษี (Admin) — เปิดหลายระบบพร้อมกันได้ ระบบจะเรียงคิวงานพิมพ์ให้เอง
+          </div>
         ) : (
           <div className="muted">ยังไม่ได้เลือก — ระบบจะใช้เครื่องพิมพ์ที่ตั้งไว้ใน Admin หรือหน้าต่างพิมพ์ของเบราว์เซอร์</div>
         )}
